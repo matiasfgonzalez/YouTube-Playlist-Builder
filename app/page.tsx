@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Video } from '@/types/video';
 import VideoInput from '@/components/video-input';
 import VideoPlayer from '@/components/video-player';
@@ -24,6 +24,45 @@ function ThemeToggle() {
 export default function Home() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const storedVideos = localStorage.getItem('playlist_videos');
+    const storedCurrentId = localStorage.getItem('playlist_current_video_id');
+    
+    if (storedVideos) {
+      try {
+        setVideos(JSON.parse(storedVideos));
+      } catch (error) {
+        console.error('Failed to parse videos from localStorage', error);
+      }
+    }
+    
+    if (storedCurrentId) {
+      setCurrentVideoId(storedCurrentId);
+    }
+    
+    setIsLoaded(true);
+  }, []);
+
+  // Save videos to localStorage
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem('playlist_videos', JSON.stringify(videos));
+    }
+  }, [videos, isLoaded]);
+
+  // Save currentVideoId to localStorage
+  useEffect(() => {
+    if (isLoaded) {
+      if (currentVideoId) {
+        localStorage.setItem('playlist_current_video_id', currentVideoId);
+      } else {
+        localStorage.removeItem('playlist_current_video_id');
+      }
+    }
+  }, [currentVideoId, isLoaded]);
   
   // Computed index for navigation
   const currentIndex = videos.findIndex(v => v.videoId === currentVideoId);
