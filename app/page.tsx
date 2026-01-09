@@ -8,6 +8,7 @@ import PlaylistManager from '@/components/playlist-manager';
 import { LayoutList, PlayCircle, SkipBack, SkipForward, Trash2, Moon, Sun, Download, Upload } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
 import ImportDialog from '@/components/import-dialog';
+import ExportDialog from '@/components/export-dialog';
 import { useRef } from 'react';
 
 function ThemeToggle() {
@@ -158,15 +159,25 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingImportVideos, setPendingImportVideos] = useState<Video[] | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
-  const handleExport = () => {
+  const handleExportClick = () => {
+    setShowExportDialog(true);
+  };
+
+  const handleExportConfirm = (filename: string) => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(videos));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", "playlist.json");
+    downloadAnchorNode.setAttribute("download", `${filename}.json`);
     document.body.appendChild(downloadAnchorNode); // required for firefox
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
+    setShowExportDialog(false);
+  };
+
+  const handleExportCancel = () => {
+    setShowExportDialog(false);
   };
 
   const handleImportClick = () => {
@@ -250,7 +261,7 @@ export default function Home() {
               </span>
                <div className="flex items-center gap-1 border-r border-border pr-4 mr-1">
                  <button 
-                   onClick={handleExport}
+                   onClick={handleExportClick}
                    className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full transition-colors"
                    title="Export to JSON"
                    disabled={videos.length === 0}
@@ -350,6 +361,11 @@ export default function Home() {
         onReplace={handleImportReplace}
         onAppend={handleImportAppend}
         onClose={handleImportCancel}
+      />
+      <ExportDialog
+        isOpen={showExportDialog}
+        onClose={handleExportCancel}
+        onConfirm={handleExportConfirm}
       />
     </div>
   );
