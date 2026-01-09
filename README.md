@@ -76,5 +76,13 @@ Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 
 ¡Siéntete libre de bifurcar (fork) este proyecto y enviar pull requests para cualquier nueva funcionalidad o mejora!
 
+
 ---
 Construido con ❤️ usando Next.js.
+
+## ☁️ Despliegue
+
+La forma más sencilla de desplegar esta aplicación es usar la [Plataforma Vercel](https://vercel.com/new). Consulta el archivo `deployment_guide.md` o sigue estos pasos rápidos con la CLI:
+
+1.  Instala Vercel CLI: `npm i -g vercel`
+2.  Ejecuta `vercel` en la raíz del proyecto.
