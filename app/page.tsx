@@ -5,8 +5,10 @@ import { Video } from '@/types/video';
 import VideoInput from '@/components/video-input';
 import VideoPlayer from '@/components/video-player';
 import PlaylistManager from '@/components/playlist-manager';
-import { LayoutList, PlayCircle, SkipBack, SkipForward, Trash2, Moon, Sun } from 'lucide-react';
+import { LayoutList, PlayCircle, SkipBack, SkipForward, Trash2, Moon, Sun, Download, Upload } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
+import ImportDialog from '@/components/import-dialog';
+import { useRef } from 'react';
 
 function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
@@ -152,6 +154,84 @@ export default function Home() {
     // Set state...
   };
 
+  // -- Import / Export Logic --
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingImportVideos, setPendingImportVideos] = useState<Video[] | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+
+  const handleExport = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(videos));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "playlist.json");
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const fileObj = event.target.files && event.target.files[0];
+    if (!fileObj) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = e.target?.result;
+        if (typeof json === 'string') {
+          const importedVideos: Video[] = JSON.parse(json);
+          // Basic validation checking if it's an array and has items
+          if (Array.isArray(importedVideos)) {
+             if (videos.length === 0) {
+               // Direct replacement if empty
+               setVideos(importedVideos);
+             } else {
+               // Ask user
+               setPendingImportVideos(importedVideos);
+               setShowImportDialog(true);
+             }
+          }
+        }
+      } catch (error) {
+         console.error("Error reading file:", error);
+         alert("Failed to parse JSON file.");
+      }
+      // Reset input
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsText(fileObj);
+  };
+
+  const handleImportReplace = () => {
+    if (pendingImportVideos) {
+      setVideos(pendingImportVideos);
+      // Reset selection if replacing
+      setCurrentVideoId(null); 
+    }
+    setShowImportDialog(false);
+    setPendingImportVideos(null);
+  };
+
+  const handleImportAppend = () => {
+    if (pendingImportVideos) {
+      // Generate new IDs to avoid key collisions
+      const newVideos = pendingImportVideos.map(v => ({...v, id: crypto.randomUUID()}));
+      setVideos(prev => [...prev, ...newVideos]);
+    }
+    setShowImportDialog(false);
+    setPendingImportVideos(null);
+  };
+
+  const handleImportCancel = () => {
+    setShowImportDialog(false);
+    setPendingImportVideos(null);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">
       {/* Header */}
@@ -168,6 +248,30 @@ export default function Home() {
               <span className="text-xs text-muted-foreground hidden sm:block">
                  {videos.length} videos • {videos.length > 0 ? 'Ready to play' : 'Empty'}
               </span>
+               <div className="flex items-center gap-1 border-r border-border pr-4 mr-1">
+                 <button 
+                   onClick={handleExport}
+                   className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full transition-colors"
+                   title="Export to JSON"
+                   disabled={videos.length === 0}
+                 >
+                   <Download className="w-5 h-5" />
+                 </button>
+                 <button 
+                   onClick={handleImportClick}
+                   className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full transition-colors"
+                   title="Import from JSON"
+                 >
+                   <Upload className="w-5 h-5" />
+                 </button>
+                 <input 
+                   type="file" 
+                   ref={fileInputRef} 
+                   onChange={handleFileChange} 
+                   accept=".json" 
+                   className="hidden" 
+                 />
+               </div>
               <ThemeToggle />
            </div>
         </div>
@@ -240,6 +344,13 @@ export default function Home() {
           </div>
         </div>
       </main>
+      <ImportDialog 
+        isOpen={showImportDialog}
+        videoCount={pendingImportVideos?.length || 0}
+        onReplace={handleImportReplace}
+        onAppend={handleImportAppend}
+        onClose={handleImportCancel}
+      />
     </div>
   );
 }
