@@ -58,6 +58,7 @@ export default function VideoPlayer({ currentVideoId, isPlaying, onEnded, onStat
           autoplay: isPlaying ? 1 : 0,
           rel: 0,
           modestbranding: 1,
+          origin: window.location.origin, // Fix for CORS/postMessage error on Vercel
         },
         events: {
           onReady: (event: any) => {
